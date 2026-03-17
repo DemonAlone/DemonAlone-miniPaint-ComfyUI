@@ -19,6 +19,10 @@ A lightweight, local, open-source image editor integration for ComfyUI. Based on
 3. Edit your image in the new tab.
 4. Click the blue **"SAVE TO COMFY"** button at the top.
 5. The file will appear in `input/miniPaint/` and auto-load into your node.
+   
+## Important Notes
+- **Same Browser Only**: The "Edit" and "Save" functions only work if the editor is opened in the **same browser** where ComfyUI is running. If you copy the editor URL to a different browser, the link between them will be lost.
+- **Single Tab**: The extension is designed to use a single browser tab for editing. If you have multiple editor tabs open manually, only the one linked to the current session will receive images.
 
 ## Credits
 - Author of miniPaint ViliusL aka [viliusle](https://github.com/viliusle).
