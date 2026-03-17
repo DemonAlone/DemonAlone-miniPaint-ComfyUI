@@ -1,4 +1,4 @@
-# ComfyUI-MiniPaint-Bridge
+# MiniPaint Bridge for ComfyUI
 
 A lightweight, local, open-source image editor integration for ComfyUI. Based on [miniPaint](https://github.com/viliusle/miniPaint) v4.14.2.
 
