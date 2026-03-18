@@ -1,5 +1,5 @@
 [project]
-name = "DemonAlone-miniPaint-ComfyUI"
+name = "demonalone-minipaint-comfyui"
 description = "Lightweight local miniPaint editor integration for ComfyUI."
 version = "1.0.0"
 license = {file = "LICENSE"} 
