@@ -1,6 +1,7 @@
 # miniPaint Bridge for ComfyUI
 
 A lightweight, local, open-source image editor integration for ComfyUI. Based on [miniPaint](https://github.com/viliusle/miniPaint) v4.14.2.
+<img width="1874" height="920" alt="miniPaint" src="https://github.com/user-attachments/assets/37af611a-9dc9-4a6f-994a-34a66d2fa6a0" />
 
 ## Features
 - **Context Menu Integration**: Right-click any node with an image and select "Edit in miniPaint".
