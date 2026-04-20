@@ -1,7 +1,7 @@
 [project]
 name = "demonalone-minipaint-comfyui"
 description = "Lightweight local miniPaint editor integration for ComfyUI."
-version = "1.0.2"
+version = "1.1.0"
 license = {file = "LICENSE"} 
 # classifiers = [
 #     "Environment :: GPU :: NVIDIA CUDA",    # NVIDIA CUDA support
