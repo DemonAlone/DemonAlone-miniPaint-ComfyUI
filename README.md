@@ -17,10 +17,10 @@
 ## Usage
 - Right-click on a **Load Image** or similar node , select **🖼️miniPaint** choose one of the following options:
 
-### 🖼️ Edit in miniPaint (New Window)
+### Edit in miniPaint (New Window)
 Opens the miniPaint editor in a separate browser window.
 Best for users who prefer a dedicated workspace with more screen space.
-### 🖼️ Edit in miniPaint (Pop-up)
+### Edit in miniPaint (Pop-up)
 - Opens the miniPaint editor as a pop-up within ComfyUI's interface.
 - Ideal for quick edits without leaving the ComfyUI workflow.
 
