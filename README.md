@@ -1,5 +1,6 @@
 # miniPaint Bridge for ComfyUI
 
+
 <img width="1874" height="920" alt="miniPaint" src="https://github.com/user-attachments/assets/37af611a-9dc9-4a6f-994a-34a66d2fa6a0" />
 
 ## Features
@@ -25,5 +26,6 @@
 - **Single Tab**: The extension is designed to use a single browser tab for editing. If you have multiple editor tabs open manually, only the one linked to the current session will receive images.
 
 ## Credits
+- Based on [miniPaint](https://github.com/viliusle/miniPaint)
 - Author of miniPaint ViliusL aka [viliusle](https://github.com/viliusle).
-- Huge assistance from Google Gemini.
+- Huge assistance from Google Gemini, DeepSeek, Qwen.

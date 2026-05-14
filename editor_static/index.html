@@ -107,25 +107,31 @@ async function loadFromComfy() {
         const response = await fetch("/mypaint/get_buffer");
         if (!response.ok) return; 
         const blob = await response.blob();
-        const file = new File([blob], "image.png", { type: "image/png" });
+        
+        const img = new Image();
+        img.onload = () => console.log('Original image size:', img.width, img.height);
+        img.src = URL.createObjectURL(blob);
 
+        const file = new File([blob], "image.png", { type: "image/png" });
         const dataTransfer = new DataTransfer();
         dataTransfer.items.add(file);
-
         const dropEvent = new DragEvent("drop", {
             bubbles: true,
             cancelable: true,
             dataTransfer: dataTransfer
         });
-
         const target = document.getElementById('canvas_minipaint') || document;
         target.dispatchEvent(dropEvent);
+
+        setTimeout(() => {
+            const canvas = document.getElementById('canvas_minipaint');
+            if(canvas) console.log('Canvas size after load:', canvas.width, canvas.height);
+        }, 500);
     } catch (e) {
         console.error("Load failed:", e);
     }
 }
 
-// listen only to the explicit signal from ComfyUI
 window.addEventListener("message", (event) => {
     if (event.data && event.data.type === "RELOAD_BUFFER") {
         console.log("Remote signal received: Reloading buffer...");
@@ -133,6 +139,7 @@ window.addEventListener("message", (event) => {
     }
 });
 
+// Function to create the button using exportToComfy
 function createSaveButton() {
     if (document.getElementById("comfy_save_btn")) return;
     const btn = document.createElement("button");
@@ -141,10 +148,37 @@ function createSaveButton() {
     btn.style = "position:fixed; top:10px; left:50%; transform:translateX(-50%); z-index:10000; padding:10px 20px; background:#007bff; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold; box-shadow: 0 4px 6px rgba(0,0,0,0.3);";
     
     btn.onclick = async () => {
-        const canvas = document.getElementById('canvas_minipaint');
-        if (!canvas) return alert("Canvas not found!");
         btn.innerHTML = "⏳ SAVING...";
-        const dataUrl = canvas.toDataURL("image/png");
+        let dataUrl = null;
+        
+        // Use the new exportToComfy method if available
+        if (window.file_save && typeof window.file_save.exportToComfy === 'function') {
+            try {
+                dataUrl = window.file_save.exportToComfy();
+                console.log("Exported via file_save.exportToComfy");
+            } catch(e) {
+                console.error("exportToComfy failed", e);
+            }
+        }
+        
+        // Fallback to old method (in case the method hasn't appeared yet)
+        if (!dataUrl) {
+            const canvas = document.getElementById('canvas_minipaint');
+            if (canvas) {
+                dataUrl = canvas.toDataURL("image/png");
+                console.warn("Using fallback canvas.toDataURL");
+            }
+        }
+        
+        if (!dataUrl) {
+            btn.innerHTML = "❌ NO DATA";
+            setTimeout(() => {
+                btn.innerHTML = "💾 SAVE TO COMFY";
+                btn.style.background = "#007bff";
+            }, 2000);
+            return;
+        }
+        
         try {
             const resp = await fetch("/mypaint/save_back", {
                 method: "POST",
@@ -156,8 +190,11 @@ function createSaveButton() {
                 window.opener.postMessage({ type: "MINIPAINT_SAVED", filename: result.filename }, "*");
                 btn.innerHTML = "✅ SAVED!";
                 btn.style.background = "#28a745";
+            } else {
+                throw new Error("Save failed");
             }
         } catch (e) {
+            console.error(e);
             btn.innerHTML = "❌ ERROR";
             btn.style.background = "#dc3545";
         }
@@ -169,12 +206,27 @@ function createSaveButton() {
     document.body.appendChild(btn);
 }
 
+// Wait for window.file_save to appear before creating the button
+let saveButtonCreated = false;
+function waitForFileSave() {
+    if (window.file_save && typeof window.file_save.exportToComfy === 'function') {
+        if (!saveButtonCreated) {
+            createSaveButton();
+            saveButtonCreated = true;
+            console.log("Save button created after file_save ready");
+        }
+    } else {
+        setTimeout(waitForFileSave, 100);
+    }
+}
+
 window.addEventListener('load', () => {
-    createSaveButton();
-    // First load when the window opens
-    setTimeout(loadFromComfy, 2000); 
+    waitForFileSave();
+    // Load image after 2 seconds (as before)
+    setTimeout(loadFromComfy, 2000);
 });
 </script>
+
 
 </body>
 </html>
