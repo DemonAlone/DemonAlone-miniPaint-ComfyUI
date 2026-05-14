@@ -147,62 +147,68 @@ function createSaveButton() {
     btn.innerHTML = "💾 SAVE TO COMFY";
     btn.style = "position:fixed; top:10px; left:50%; transform:translateX(-50%); z-index:10000; padding:10px 20px; background:#007bff; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold; box-shadow: 0 4px 6px rgba(0,0,0,0.3);";
     
-    btn.onclick = async () => {
-        btn.innerHTML = "⏳ SAVING...";
-        let dataUrl = null;
-        
-        // Use the new exportToComfy method if available
-        if (window.file_save && typeof window.file_save.exportToComfy === 'function') {
-            try {
-                dataUrl = window.file_save.exportToComfy();
-                console.log("Exported via file_save.exportToComfy");
-            } catch(e) {
-                console.error("exportToComfy failed", e);
-            }
-        }
-        
-        // Fallback to old method (in case the method hasn't appeared yet)
-        if (!dataUrl) {
-            const canvas = document.getElementById('canvas_minipaint');
-            if (canvas) {
-                dataUrl = canvas.toDataURL("image/png");
-                console.warn("Using fallback canvas.toDataURL");
-            }
-        }
-        
-        if (!dataUrl) {
-            btn.innerHTML = "❌ NO DATA";
-            setTimeout(() => {
-                btn.innerHTML = "💾 SAVE TO COMFY";
-                btn.style.background = "#007bff";
-            }, 2000);
-            return;
-        }
-        
-        try {
-            const resp = await fetch("/mypaint/save_back", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ image: dataUrl })
-            });
-            const result = await resp.json();
-            if (resp.ok && window.opener) {
-                window.opener.postMessage({ type: "MINIPAINT_SAVED", filename: result.filename }, "*");
-                btn.innerHTML = "✅ SAVED!";
-                btn.style.background = "#28a745";
-            } else {
-                throw new Error("Save failed");
-            }
-        } catch (e) {
-            console.error(e);
-            btn.innerHTML = "❌ ERROR";
-            btn.style.background = "#dc3545";
-        }
-        setTimeout(() => {
-            btn.innerHTML = "💾 SAVE TO COMFY";
-            btn.style.background = "#007bff";
-        }, 2000);
-    };
+	btn.onclick = async () => {
+		btn.innerHTML = "⏳ SAVING...";
+		let dataUrl = null;
+		
+		if (window.file_save && typeof window.file_save.exportToComfy === 'function') {
+			try {
+				dataUrl = window.file_save.exportToComfy();
+				console.log("Exported via file_save.exportToComfy");
+			} catch(e) {
+				console.error("exportToComfy failed", e);
+			}
+		}
+		
+		if (!dataUrl) {
+			const canvas = document.getElementById('canvas_minipaint');
+			if (canvas) {
+				dataUrl = canvas.toDataURL("image/png");
+				console.warn("Using fallback canvas.toDataURL");
+			}
+		}
+		
+		if (!dataUrl) {
+			btn.innerHTML = "❌ NO DATA";
+			setTimeout(() => {
+				btn.innerHTML = "💾 SAVE TO COMFY";
+				btn.style.background = "#007bff";
+			}, 2000);
+			return;
+		}
+		
+		try {
+			const resp = await fetch("/mypaint/save_back", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ image: dataUrl })
+			});
+			const result = await resp.json();
+			let target = null;
+			if (window.opener) {
+				target = window.opener;
+			} else if (window.parent && window.self !== window.top) {
+				target = window.parent;
+			}
+			// -----------------------
+			
+			if (resp.ok && target) {
+				target.postMessage({ type: "MINIPAINT_SAVED", filename: result.filename }, "*");
+				btn.innerHTML = "✅ SAVED!";
+				btn.style.background = "#28a745";
+			} else {
+				throw new Error("Save failed");
+			}
+		} catch (e) {
+			console.error(e);
+			btn.innerHTML = "❌ ERROR";
+			btn.style.background = "#dc3545";
+		}
+		setTimeout(() => {
+			btn.innerHTML = "💾 SAVE TO COMFY";
+			btn.style.background = "#007bff";
+		}, 2000);
+	};
     document.body.appendChild(btn);
 }
 
