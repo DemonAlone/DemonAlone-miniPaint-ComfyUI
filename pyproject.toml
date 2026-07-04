@@ -1,7 +1,7 @@
 [project]
 name = "demonalone-minipaint-comfyui"
 description = "Lightweight local miniPaint editor integration for ComfyUI."
-version = "2.1.0"
+version = "2.1.1"
 license = {file = "LICENSE"} 
 # classifiers = [
 #     "Environment :: GPU :: NVIDIA CUDA",    # NVIDIA CUDA support
@@ -16,5 +16,5 @@ Repository = "https://github.com/DemonAlone/DemonAlone-miniPaint-ComfyUI"
 [tool.comfy]
 PublisherId = "demonalone"
 DisplayName = "DemonAlone-miniPaint-ComfyUI"
-Icon = ""
+Icon = "https://avatars.githubusercontent.com/u/25270760"
 includes = [] 
