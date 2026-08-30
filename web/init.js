@@ -1,17 +1,69 @@
 import { app } from "../../scripts/app.js";
 
+console.log("[miniPaint] Extension loaded");
+
 let miniPaintWindow = null;
 let modalContainer = null;
 
-// === General image upload to server ===
+// === Loading original image from node ===
+async function getImageFromNode(node) {
+    // 1. Try to get file name from 'image' widget
+    const imageWidget = node.widgets?.find(w => w.name === "image");
+    if (imageWidget && imageWidget.value) {
+        const filename = imageWidget.value;
+        // Form URL for fetching file (standard ComfyUI endpoint)
+        const url = `/view?filename=${encodeURIComponent(filename)}`;
+        try {
+            const response = await fetch(url);
+            if (response.ok) {
+                const blob = await response.blob();
+                const img = new Image();
+                await new Promise((resolve, reject) => {
+                    img.onload = resolve;
+                    img.onerror = reject;
+                    img.src = URL.createObjectURL(blob);
+                });
+                return img;
+            } else {
+                console.warn("Failed to load image from /view, falling back to DOM element.");
+            }
+        } catch (e) {
+            console.warn("Fetch error, falling back to DOM element.", e);
+        }
+    }
+
+    // 2. Fallback: try to extract HTMLImageElement from node.imgs or node.image
+    let imgElement = null;
+    if (node.imgs) {
+        const idx = node.activated_index || 0;
+        const item = node.imgs[idx];
+        if (item && item.img) imgElement = item.img;
+        else if (item instanceof HTMLImageElement) imgElement = item;
+        else imgElement = item;
+    } else if (node.image) {
+        if (node.image.img) imgElement = node.image.img;
+        else if (node.image instanceof HTMLImageElement) imgElement = node.image;
+        else imgElement = node.image;
+    }
+
+    if (imgElement && imgElement instanceof HTMLImageElement) {
+        return imgElement;
+    }
+    throw new Error("Unable to retrieve original image from node.");
+}
+
+// === Sending image to server (temporary buffer) ===
 async function uploadImageToBuffer(imageElement) {
+    // Use naturalWidth/Height if available, otherwise take standard dimensions
+    const width = imageElement.naturalWidth || imageElement.width;
+    const height = imageElement.naturalHeight || imageElement.height;
     const tempCanvas = document.createElement("canvas");
-    tempCanvas.width = imageElement.width || imageElement.naturalWidth;
-    tempCanvas.height = imageElement.height || imageElement.naturalHeight;
+    tempCanvas.width = width;
+    tempCanvas.height = height;
     const ctx = tempCanvas.getContext("2d");
-    ctx.drawImage(imageElement, 0, 0);
+    ctx.drawImage(imageElement, 0, 0, width, height);
     const cleanBase64 = tempCanvas.toDataURL("image/png");
-    
+	
     const response = await fetch("/mypaint/upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -41,8 +93,9 @@ function setupSaveHandler(node) {
 }
 
 // === Opening in separate window ===
-async function openMiniPaintWindow(node, imageElement) {
-    await uploadImageToBuffer(imageElement);
+async function openMiniPaintWindow(node) {
+    const img = await getImageFromNode(node);
+    await uploadImageToBuffer(img);
     const editorUrl = "/mypaint/index.html";
     if (miniPaintWindow && !miniPaintWindow.closed) {
         miniPaintWindow.focus();
@@ -53,9 +106,10 @@ async function openMiniPaintWindow(node, imageElement) {
     setupSaveHandler(node);
 }
 
-// === Opening in modal window (iframe) ===
-async function openMiniPaintModal(node, imageElement) {
-    await uploadImageToBuffer(imageElement);
+// === Открытие в модальном окне (iframe) ===
+async function openMiniPaintModal(node) {
+    const img = await getImageFromNode(node);
+    await uploadImageToBuffer(img);
     
     // Close previous modal window if exists
     if (modalContainer) {
@@ -128,11 +182,8 @@ app.registerExtension({
                     {
                         content: "Edit in miniPaint (New Window)",
                         callback: async () => {
-                            const node = this;
-                            const imgElement = node.imgs ? node.imgs[node.activated_index || 0] : node.image;
-                            if (!imgElement) return;
                             try {
-                                await openMiniPaintWindow(node, imgElement);
+                                await openMiniPaintWindow(this);
                             } catch (err) {
                                 console.error("MiniPaint (window) error:", err);
                             }
@@ -141,11 +192,9 @@ app.registerExtension({
                     {
                         content: "Edit in miniPaint (Pop-up)",
                         callback: async () => {
-                            const node = this;
-                            const imgElement = node.imgs ? node.imgs[node.activated_index || 0] : node.image;
-                            if (!imgElement) return;
+
                             try {
-                                await openMiniPaintModal(node, imgElement);
+                                await  openMiniPaintModal(this);
                             } catch (err) {
                                 console.error("MiniPaint (Pop-up) error:", err);
                             }
