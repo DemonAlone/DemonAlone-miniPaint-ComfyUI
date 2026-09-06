@@ -1,5 +1,4 @@
 import os
-import base64
 import time
 from server import PromptServer
 from aiohttp import web
@@ -23,10 +22,18 @@ async def get_buffer(request):
 @routes.post("/mypaint/upload")
 async def upload_temp(request):
     try:
-        data = await request.json()
-        img_base64 = data['image'].split(",")[-1]
+        reader = await request.multipart()
+        field = await reader.next()
+        if field.name != "image":
+            return web.Response(status=400, text="Field 'image' expected")
+
+        # Save to a temporary file
         with open(temp_image_path, "wb") as f:
-            f.write(base64.b64decode(img_base64))
+            while True:
+                chunk = await field.read_chunk()
+                if not chunk:
+                    break
+                f.write(chunk)
         return web.json_response({"status": "ok"})
     except Exception as e:
         return web.Response(status=500, text=str(e))
@@ -34,9 +41,10 @@ async def upload_temp(request):
 @routes.post("/mypaint/save_back")
 async def save_back(request):
     try:
-        data = await request.json()
-        img_base64 = data['image'].split(",")[-1]
-        
+        reader = await request.multipart()
+        field = await reader.next()
+        if field.name != "image":
+            return web.Response(status=400, text="Field 'image' expected")
         filename = f"minipaint_{int(time.time())}.png"
         input_dir = folder_paths.get_input_directory()
         sub_dir = os.path.join(input_dir, "miniPaint")
@@ -44,10 +52,13 @@ async def save_back(request):
             os.makedirs(sub_dir)
             
         save_path = os.path.join(sub_dir, filename)
-        
+
         with open(save_path, "wb") as f:
-            f.write(base64.b64decode(img_base64))
-        
+            while True:
+                chunk = await field.read_chunk()
+                if not chunk:
+                    break
+                f.write(chunk)
         relative_path = f"miniPaint/{filename}"
         return web.json_response({"status": "ok", "filename": relative_path})
     except Exception as e:
@@ -56,7 +67,8 @@ async def save_back(request):
 @routes.get("/mypaint/{file:.*}")
 async def get_editor_file(request):
     file_path = request.match_info.get("file", "index.html")
-    if not file_path: file_path = "index.html"
+    if not file_path:
+        file_path = "index.html"
     full_path = os.path.join(static_path, file_path)
     if os.path.exists(full_path):
         return web.FileResponse(full_path)

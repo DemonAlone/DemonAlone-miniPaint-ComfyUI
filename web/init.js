@@ -62,12 +62,14 @@ async function uploadImageToBuffer(imageElement) {
     tempCanvas.height = height;
     const ctx = tempCanvas.getContext("2d");
     ctx.drawImage(imageElement, 0, 0, width, height);
-    const cleanBase64 = tempCanvas.toDataURL("image/png");
-	
+    // Получаем Blob (бинарные данные PNG)
+    const blob = await new Promise(resolve => tempCanvas.toBlob(resolve, "image/png"));
+    const formData = new FormData();
+    formData.append("image", blob, "mypaint_edit.png");
+
     const response = await fetch("/mypaint/upload", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: cleanBase64 })
+        body: formData
     });
     if (!response.ok) throw new Error("Upload failed");
 }
@@ -79,6 +81,11 @@ function setupSaveHandler(node) {
         window.removeEventListener("message", node._miniPaintHandler);
     }
     const handler = (e) => {
+		        // Check that the message came from our own source
+        if (e.origin !== window.location.origin) {
+            console.warn("Ignored message from untrusted origin:", e.origin);
+            return;
+        }
         if (e.data && e.data.type === "MINIPAINT_SAVED") {
             const imageWidget = node.widgets?.find(w => w.name === "image");
             if (imageWidget) {
@@ -99,14 +106,14 @@ async function openMiniPaintWindow(node) {
     const editorUrl = "/mypaint/index.html";
     if (miniPaintWindow && !miniPaintWindow.closed) {
         miniPaintWindow.focus();
-        miniPaintWindow.postMessage({ type: "RELOAD_BUFFER" }, "*");
+        miniPaintWindow.postMessage({ type: "RELOAD_BUFFER" }, window.location.origin);
     } else {
         miniPaintWindow = window.open(editorUrl, "ComfyMiniPaintWindow");
     }
     setupSaveHandler(node);
 }
 
-// === Открытие в модальном окне (iframe) ===
+// === Opening in a modal window (iframe) ===
 async function openMiniPaintModal(node) {
     const img = await getImageFromNode(node);
     await uploadImageToBuffer(img);
