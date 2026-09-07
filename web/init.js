@@ -62,7 +62,7 @@ async function uploadImageToBuffer(imageElement) {
     tempCanvas.height = height;
     const ctx = tempCanvas.getContext("2d");
     ctx.drawImage(imageElement, 0, 0, width, height);
-    // Получаем Blob (бинарные данные PNG)
+    // Get Blob (PNG binary data)
     const blob = await new Promise(resolve => tempCanvas.toBlob(resolve, "image/png"));
     const formData = new FormData();
     formData.append("image", blob, "mypaint_edit.png");
