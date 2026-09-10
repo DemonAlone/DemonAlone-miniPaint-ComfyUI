@@ -69,8 +69,23 @@ async def get_editor_file(request):
     file_path = request.match_info.get("file", "index.html")
     if not file_path:
         file_path = "index.html"
-    full_path = os.path.join(static_path, file_path)
-    if os.path.exists(full_path):
+
+    # Normalize the requested path
+    requested_path = os.path.normpath(file_path)
+
+    # Disallow absolute paths and out-of-bounds
+    if os.path.isabs(requested_path) or requested_path.startswith('..'):
+        return web.Response(status=403, text="Forbidden")
+
+    # Form the full path and get its real path
+    full_path = os.path.realpath(os.path.join(static_path, requested_path))
+    base_real = os.path.realpath(static_path)
+
+    # Check that full_path is inside base_real
+    if os.path.commonpath([base_real, full_path]) != base_real:
+        return web.Response(status=403, text="Forbidden")
+
+    if os.path.isfile(full_path):
         return web.FileResponse(full_path)
     return web.Response(status=404)
 
