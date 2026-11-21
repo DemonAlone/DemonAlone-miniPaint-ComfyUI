@@ -28,9 +28,9 @@
 	<meta property="og:site_name" content="miniPaint" />
 	
 	<script>
-    localStorage.setItem('lang', 'en');
-    Object.defineProperty(navigator, 'language', { value: 'en-US', configurable: true });
-    Object.defineProperty(navigator, 'languages', { value: ['en-US', 'en'], configurable: true });
+		localStorage.setItem('lang', 'en');
+		Object.defineProperty(navigator, 'language', { value: 'en-US', configurable: true });
+		Object.defineProperty(navigator, 'languages', { value: ['en-US', 'en'], configurable: true });
 	</script>
 	<script src="bundle.js"></script>
 </head>
@@ -105,134 +105,5 @@
 	</div>
 	<div class="hidden" id="tmp"></div>
 	<div id="popups"></div>
-<script>
-async function loadFromComfy() {
-    console.log("Loading image from buffer...");
-    try {
-        const response = await fetch("/mypaint/get_buffer");
-        if (!response.ok) return; 
-        const blob = await response.blob();
-        
-        const img = new Image();
-        img.onload = () => console.log('Original image size:', img.width, img.height);
-        img.src = URL.createObjectURL(blob);
-
-        const file = new File([blob], "image.png", { type: "image/png" });
-        const dataTransfer = new DataTransfer();
-        dataTransfer.items.add(file);
-        const dropEvent = new DragEvent("drop", {
-            bubbles: true,
-            cancelable: true,
-            dataTransfer: dataTransfer
-        });
-        const target = document.getElementById('canvas_minipaint') || document;
-        target.dispatchEvent(dropEvent);
-
-        setTimeout(() => {
-            const canvas = document.getElementById('canvas_minipaint');
-            if(canvas) console.log('Canvas size after load:', canvas.width, canvas.height);
-        }, 500);
-    } catch (e) {
-        console.error("Load failed:", e);
-    }
-}
-
-window.addEventListener("message", (event) => {
-    if (event.data && event.data.type === "RELOAD_BUFFER") {
-        console.log("Remote signal received: Reloading buffer...");
-        loadFromComfy(); 
-    }
-});
-
-// Function to create the button using exportToComfy
-function createSaveButton() {
-    if (document.getElementById("comfy_save_btn")) return;
-
-    const btn = document.createElement("button");
-    btn.id = "comfy_save_btn";
-    btn.innerHTML = "💾 SAVE TO COMFY";
-    btn.style = "position:fixed; top:10px; left:50%; transform:translateX(-50%); z-index:10000; padding:10px 20px; background:#007bff; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold; box-shadow: 0 4px 6px rgba(0,0,0,0.3);";
-
-    btn.onclick = async () => {
-        btn.innerHTML = "⏳ SAVING...";
-
-        // Get Canvas and export as Blob
-        const canvas = document.getElementById('canvas_minipaint');
-        let blob = null;
-        if (canvas) {
-            blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
-        }
-
-        if (!blob) {
-            btn.innerHTML = "❌ NO DATA";
-            setTimeout(() => {
-                btn.innerHTML = "💾 SAVE TO COMFY";
-                btn.style.background = "#007bff";
-            }, 2000);
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append("image", blob, "mypaint_edit.png");
-
-        try {
-            const resp = await fetch("/mypaint/save_back", {
-                method: "POST",
-                body: formData
-            });
-            const result = await resp.json();
-
-            // Define the target window (parent or opener)
-            let target = null;
-            if (window.opener) {
-                target = window.opener;
-            } else if (window.parent && window.self !== window.top) {
-                target = window.parent;
-            }
-
-            if (resp.ok && target) {
-                target.postMessage({ type: "MINIPAINT_SAVED", filename: result.filename }, "*");
-                btn.innerHTML = "✅ SAVED!";
-                btn.style.background = "#28a745";
-            } else {
-                throw new Error("Save failed");
-            }
-        } catch (e) {
-            console.error(e);
-            btn.innerHTML = "❌ ERROR";
-            btn.style.background = "#dc3545";
-        }
-
-        setTimeout(() => {
-            btn.innerHTML = "💾 SAVE TO COMFY";
-            btn.style.background = "#007bff";
-        }, 2000);
-    };
-
-    document.body.appendChild(btn);
-}
-
-// Wait for window.file_save to appear before creating the button
-let saveButtonCreated = false;
-function waitForFileSave() {
-    if (window.file_save && typeof window.file_save.exportToComfy === 'function') {
-        if (!saveButtonCreated) {
-            createSaveButton();
-            saveButtonCreated = true;
-            console.log("Save button created after file_save ready");
-        }
-    } else {
-        setTimeout(waitForFileSave, 100);
-    }
-}
-
-window.addEventListener('load', () => {
-    waitForFileSave();
-    // Load image after 2 seconds (as before)
-    setTimeout(loadFromComfy, 2000);
-});
-</script>
-
-
 </body>
 </html>
